@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blomklassificerare - AI Blomidentifiering</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ffeef8 0%, #fff5e6 50%, #e6f7ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "🌸";
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            font-size: 60px;
+            opacity: 0.15;
+            z-index: 0;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        body::after {
+            content: "🌼";
+            position: fixed;
+            bottom: 50px;
+            left: 40px;
+            font-size: 70px;
+            opacity: 0.1;
+            z-index: 0;
+            animation: float 8s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(20px); }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 48px;
+            background: linear-gradient(135deg, #d946a6 0%, #ec4899 50%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .credits {
+            color: #9ca3af;
+            font-size: 14px;
+            font-style: italic;
+            margin-bottom: 5px;
+        }
+
+        .credits strong {
+            color: #d946a6;
+            font-style: normal;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            h1 {
+                font-size: 36px;
+            }
+        }
+
+        .status-box {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(217, 70, 166, 0.15);
+            border: 2px solid #fce7f3;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-icon {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-icon.loaded {
+            background: #10b981;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 10px;
+            border-left: 4px solid #ec4899;
+        }
+
+        .status-label {
+            color: #6b7280;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .status-value {
+            color: #1f2937;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 4px 12px;
+            background: #fce7f3;
+            border-radius: 6px;
+        }
+
+        .status-value.ready {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(217, 70, 166, 0.15);
+            border: 2px solid #fce7f3;
+            animation: fadeIn 0.8s ease-out 0.3s both;
+        }
+
+        .upload-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone {
+            border: 3px dashed #ec4899;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #fef2f8 0%, #fef9e7 100%);
+        }
+
+        .drop-zone:hover {
+            border-color: #d946a6;
+            background: linear-gradient(135deg, #fce7f3 0%, #fef3c7 100%);
+            transform: translateY(-2px);
+        }
+
+        .drop-zone.dragover {
+            border-color: #d946a6;
+            background: #fce7f3;
+            box-shadow: 0 0 20px rgba(217, 70, 166, 0.3);
+        }
+
+        .drop-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .drop-text {
+            color: #6b7280;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .drop-text strong {
+            color: #d946a6;
+        }
+
+        .drop-hint {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #d946a6 0%, #ec4899 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(217, 70, 166, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            grid-column: 1 / -1;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(217, 70, 166, 0.15);
+            border: 2px solid #fce7f3;
+            animation: fadeIn 0.8s ease-out 0.4s both;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .results-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+
+        .results-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .results-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(217, 70, 166, 0.2);
+            border: 3px solid #fce7f3;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .result-item {
+            background: linear-gradient(135deg, #fef2f8 0%, #fef9e7 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 5px solid #ec4899;
+            transition: all 0.3s ease;
+        }
+
+        .result-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(217, 70, 166, 0.1);
+        }
+
+        .result-item.top {
+            background: linear-gradient(135deg, #fce7f3 0%, #fef3c7 100%);
+            border-left-color: #d946a6;
+            padding: 25px;
+        }
+
+        .result-flower {
+            font-size: 24px;
+            color: #1f2937;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .result-confidence {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d946a6 0%, #ec4899 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #fce7f3;
+            border-top: 4px solid #ec4899;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left: 5px solid #ef4444;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #9ca3af;
+            font-size: 14px;
+            border-top: 1px solid #e5e7eb;
+            animation: fadeIn 0.8s ease-out 0.5s both;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌸 Blomklassificerare 🌼</h1>
+            <p class="subtitle">Identifiera blommor med AI-drivna maskininlärning</p>
+            <p class="credits">Skapad av <strong>Tilde G</strong> | Klass <strong>NA23A</strong></p>
+        </header>
+
+        <div class="content-grid">
+            <div class="status-box">
+                <div class="status-title">
+                    <span class="status-icon" id="statusIcon"></span>
+                    Modellstatus
+                </div>
+                <div class="status-info">
+                    <div class="status-item">
+                        <span class="status-label">Modell inladdad</span>
+                        <span class="status-value" id="modelStatus">Laddar...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Status</span>
+                        <span class="status-value" id="readyStatus">Förbereder</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Version</span>
+                        <span class="status-value">v1.0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Modelltyp</span>
+                        <span class="status-value">TensorFlow.js</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <div class="upload-title">Ladda upp blomma</div>
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-icon">📸</div>
+                    <div class="drop-text">Dra och släpp en bild här</div>
+                    <div class="drop-hint">eller klicka för att välja från dator</div>
+                </div>
+                <input type="file" id="imageInput" accept="image/*">
+                <button class="button" id="classifyBtn" disabled>Klassificera blomma</button>
+                <div class="error" id="errorMessage"></div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-title">📊 Klassificeringsresultat</div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Analyserar bild...</div>
+            </div>
+
+            <div class="results-container" id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Blomklassificeraren använder en tränad neural nätverksmodell baserad på MobileNetV2</p>
+        <p style="margin-top: 10px;">💐 Skapad med kärlek för blomälskare 💐</p>
+    </footer>
+
+    <script>
+        const MODEL_URL = 'https://raw.githubusercontent.com/tilai123/flower-classifier/main/tfjs_model/model.json';
+        const CLASS_NAMES = ['Daisy', 'Dandelion', 'Rose', 'Sunflower', 'Tulip'];
+
+        let model = null;
+        let selectedImage = null;
+
+        const dropZone = document.getElementById('dropZone');
+        const imageInput = document.getElementById('imageInput');
+        const classifyBtn = document.getElementById('classifyBtn');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const loading = document.getElementById('loading');
+        const statusIcon = document.getElementById('statusIcon');
+        const modelStatus = document.getElementById('modelStatus');
+        const readyStatus = document.getElementById('readyStatus');
+        const errorMessage = document.getElementById('errorMessage');
+
+        window.addEventListener('DOMContentLoaded', initializeApp);
+
+        async function initializeApp() {
+            try {
+                await loadModel();
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                showError('Fel vid inladdning av modellen: ' + error.message);
+            }
+        }
+
+        async function loadModel() {
+            try {
+                modelStatus.textContent = 'Laddar...';
+                modelStatus.className = 'status-value';
+                
+                model = await tf.loadLayersModel(MODEL_URL);
+                
+                modelStatus.textContent = 'Inladdad ✓';
+                modelStatus.className = 'status-value ready';
+                readyStatus.textContent = 'Redo';
+                readyStatus.className = 'status-value ready';
+                statusIcon.classList.add('loaded');
+                
+                classifyBtn.disabled = false;
+                
+                console.log('Model loaded successfully');
+            } catch (error) {
+                modelStatus.textContent = 'Fel ✗';
+                modelStatus.className = 'status-value';
+                readyStatus.textContent = 'Fel';
+                readyStatus.className = 'status-value';
+                console.error('Failed to load model:', error);
+                throw error;
+            }
+        }
+
+        dropZone.addEventListener('click', () => imageInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleImageSelect(files[0]);
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageSelect(e.target.files[0]);
+            }
+        });
+
+        function handleImageSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Vänligen välj en bildfil');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedImage = e.target.result;
+                displayPreview();
+                clearError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayPreview() {
+            const preview = `<img src="${selectedImage}" alt="Preview" class="preview-image">`;
+            resultsContainer.innerHTML = preview;
+        }
+
+        classifyBtn.addEventListener('click', classifyImage);
+
+        async function classifyImage() {
+            if (!selectedImage || !model) return;
+
+            try {
+                loading.classList.add('show');
+                resultsSection.classList.add('show');
+                classifyBtn.disabled = true;
+
+                const img = new Image();
+                img.src = selectedImage;
+                
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 224;
+                canvas.height = 224;
+                const ctx = canvas.getContext('2d');
+                
+                const size = Math.min(img.width, img.height);
+                const x = (img.width - size) / 2;
+                const y = (img.height - size) / 2;
+                ctx.drawImage(img, x, y, size, size, 0, 0, 224, 224);
+
+                let tensor = tf.browser.fromPixels(canvas);
+                tensor = tensor.cast('float32');
+                tensor = tensor.div(tf.scalar(127.5)).sub(tf.scalar(1));
+                tensor = tensor.expandDims(0);
+
+                const predictions = model.predict(tensor);
+                const probabilities = predictions.dataSync();
+                
+                tensor.dispose();
+                predictions.dispose();
+
+                const results = Array.from(probabilities)
+                    .map((prob, idx) => ({
+                        name: CLASS_NAMES[idx],
+                        probability: prob,
+                        percentage: (prob * 100).toFixed(2)
+                    }))
+                    .sort((a, b) => b.probability - a.probability);
+
+                displayResults(results);
+                loading.classList.remove('show');
+                classifyBtn.disabled = false;
+
+            } catch (error) {
+                console.error('Classification error:', error);
+                showError('Fel vid klassificering: ' + error.message);
+                loading.classList.remove('show');
+                classifyBtn.disabled = false;
+            }
+        }
+
+        function displayResults(results) {
+            resultsContainer.innerHTML = `
+                <div>
+                    <img src="${selectedImage}" alt="Preview" class="preview-image">
+                </div>
+                <div class="results-list">
+                    ${results.map((result, idx) => `
+                        <div class="result-item ${idx === 0 ? 'top' : ''}">
+                            <div class="result-flower">
+                                ${idx === 0 ? '🏆 ' : ''}${result.name}
+                            </div>
+                            <div class="result-confidence">
+                                Sannolikhet: ${result.percentage}%
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${result.percentage}%"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = '⚠️ ' + message;
+            errorMessage.classList.add('show');
+        }
+
+        function clearError() {
+            errorMessage.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
