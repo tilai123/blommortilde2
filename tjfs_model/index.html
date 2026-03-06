@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilde - Blomklassificering</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .class-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .status-section {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.loading {
+            background: #ffc107;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-indicator.ready {
+            background: #28a745;
+        }
+
+        .status-indicator.error {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+
+        .upload-area:hover {
+            background: #f0f0f0;
+            border-color: #764ba2;
+        }
+
+        .upload-area.drag-over {
+            background: #e8e8ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .preview-section {
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .preview-section.active {
+            display: block;
+        }
+
+        .preview-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+            display: none;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .result-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+
+        .result-flower {
+            font-size: 1.8em;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .result-confidence {
+            color: #666;
+            font-size: 1em;
+        }
+
+        .confidence-bar {
+            background: #e0e0e0;
+            height: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
+            transition: width 0.5s ease;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-classify {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-classify:hover:not(:disabled) {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-classify:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-reset {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-reset:hover {
+            background: #d0d0d0;
+            transform: translateY(-2px);
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-spinner.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #dc3545;
+            background: #fff5f5;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid #dc3545;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .upload-area {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌸 Tilde</h1>
+            <p>Blomklassificering med AI</p>
+            <span class="class-badge">NA23A</span>
+        </div>
+
+        <div class="status-section">
+            <div class="status-label">
+                <span class="status-indicator loading" id="statusIndicator"></span>
+                <span>Modellstatus</span>
+            </div>
+            <div class="status-text" id="statusText">Laddar modell...</div>
+        </div>
+
+        <div class="upload-section">
+            <label class="upload-label">Ladda upp bild</label>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">Klicka eller dra en bild här</div>
+                <div class="upload-hint">PNG, JPG eller WebP (max 10MB)</div>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <label class="preview-label">Förhandsvisning</label>
+            <img id="imagePreview" alt="Förhandsvisning">
+        </div>
+
+        <div class="button-group" id="buttonGroup" style="display: none;">
+            <button class="btn-classify" id="classifyBtn">Klassificera</button>
+            <button class="btn-reset" id="resetBtn">Rensa</button>
+        </div>
+
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #667eea;">Analyserar bild...</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-label">Klassificeringsresultat</div>
+            <div class="result-flower" id="flowerName">-</div>
+            <div class="result-confidence">Sannolikhet: <span id="confidencePercent">0</span>%</div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.11.0"></script>
+    <script>
+        const MODEL_URL = './model.json';
+        const CLASS_NAMES = ['Klass 0', 'Klass 1', 'Klass 2', 'Klass 3', 'Klass 4'];
+        
+        let model = null;
+        let selectedImage = null;
+
+        // Status indicator
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+
+        // Upload elements
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const previewSection = document.getElementById('previewSection');
+        const imagePreview = document.getElementById('imagePreview');
+        const buttonGroup = document.getElementById('buttonGroup');
+
+        // Result elements
+        const resultSection = document.getElementById('resultSection');
+        const flowerName = document.getElementById('flowerName');
+        const confidencePercent = document.getElementById('confidencePercent');
+        const confidenceFill = document.getElementById('confidenceFill');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Buttons
+        const classifyBtn = document.getElementById('classifyBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // Load model on page load
+        window.addEventListener('load', async () => {
+            await loadModel();
+        });
+
+        // Load TensorFlow model
+        async function loadModel() {
+            try {
+                statusText.textContent = 'Laddar modell...';
+                statusIndicator.className = 'status-indicator loading';
+                
+                model = await tf.loadLayersModel(MODEL_URL);
+                
+                statusIndicator.className = 'status-indicator ready';
+                statusText.textContent = 'Modell är klar (MobileNetV2)';
+            } catch (error) {
+                console.error('Fel vid laddning av modell:', error);
+                statusIndicator.className = 'status-indicator error';
+                statusText.textContent = 'Fel: Kunde inte ladda modellen';
+                showError('Kunde inte ladda modellen. Kontrollera att model.json finns i samma mapp.');
+            }
+        }
+
+        // Upload area click
+        uploadArea.addEventListener('click', () => {
+            imageInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            handleImageSelect(e.dataTransfer.files[0]);
+        });
+
+        // File input change
+        imageInput.addEventListener('change', (e) => {
+            handleImageSelect(e.target.files[0]);
+        });
+
+        // Handle image selection
+        function handleImageSelect(file) {
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showError('Vänligen välj en bildfil.');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showError('Bildfilen är för stor. Max 10MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedImage = e.target.result;
+                imagePreview.src = selectedImage;
+                previewSection.classList.add('active');
+                buttonGroup.style.display = 'flex';
+                resultSection.classList.remove('active');
+                clearError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Classify image
+        classifyBtn.addEventListener('click', async () => {
+            if (!model || !selectedImage) {
+                showError('Vänligen ladda en bild och vänta på att modellen är klar.');
+                return;
+            }
+
+            try {
+                loadingSpinner.classList.add('active');
+                classifyBtn.disabled = true;
+
+                const prediction = await classifyImage(selectedImage);
+                
+                displayResult(prediction);
+                loadingSpinner.classList.remove('active');
+                classifyBtn.disabled = false;
+            } catch (error) {
+                console.error('Klassificeringsfel:', error);
+                showError('Fel vid klassificering: ' + error.message);
+                loadingSpinner.classList.remove('active');
+                classifyBtn.disabled = false;
+            }
+        });
+
+        // Classify image function
+        async function classifyImage(imageData) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const tensor = tf.browser.fromPixels(img)
+                            .resizeNearestNeighbor([224, 224])
+                            .expandDims(0)
+                            .cast('float32');
+
+                        const predictions = model.predict(tensor);
+                        const predictionArray = predictions.dataSync();
+                        
+                        const classIndex = tf.argMax(predictions, -1).dataSync()[0];
+                        const confidence = Math.max(...Array.from(predictionArray));
+
+                        tensor.dispose();
+                        predictions.dispose();
+
+                        resolve({
+                            classIndex: classIndex,
+                            className: CLASS_NAMES[classIndex],
+                            confidence: confidence
+                        });
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                img.onerror = () => reject(new Error('Kunde inte ladda bilden'));
+                img.src = imageData;
+            });
+        }
+
+        // Display result
+        function displayResult(prediction) {
+            const confidencePercentValue = Math.round(prediction.confidence * 100);
+            flowerName.textContent = prediction.className;
+            confidencePercent.textContent = confidencePercentValue;
+            confidenceFill.style.width = confidencePercentValue + '%';
+            confidenceFill.textContent = confidencePercentValue + '%';
+            resultSection.classList.add('active');
+        }
+
+        // Reset
+        resetBtn.addEventListener('click', () => {
+            selectedImage = null;
+            imageInput.value = '';
+            previewSection.classList.remove('active');
+            buttonGroup.style.display = 'none';
+            resultSection.classList.remove('active');
+            clearError();
+        });
+
+        // Error handling
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+        }
+
+        function clearError() {
+            errorMessage.classList.remove('active');
+            errorMessage.textContent = '';
+        }
+    </script>
+</body>
+</html>
