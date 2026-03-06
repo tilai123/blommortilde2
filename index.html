@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>Blomklassificering – Tilde G NA23A</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #ffeef5, #fff8fc);
+            margin: 0;
+            padding: 0;
+            color: #4a2c2a;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px;
+            background: #ffb7d5;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .status-box {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-align: center;
+            background: #ffe3ef;
+            border: 2px solid #ff9ac2;
+        }
+
+        #preview {
+            display: block;
+            margin: 20px auto;
+            max-width: 300px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        button {
+            background: #ff9ac2;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #ff7aa9;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff0f6;
+            border-left: 5px solid #ff7aa9;
+            border-radius: 8px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    🌼 Blomklassificering – Tilde G NA23A 🌼
+</header>
+
+<div class="container">
+
+    <div id="modelStatus" class="status-box">
+        Modellen laddas...
+    </div>
+
+    <input type="file" id="imageUpload" accept="image/*">
+    <img id="preview" src="" alt="Förhandsvisning" style="display:none;">
+
+    <button onclick="predict()">Klassificera blomma</button>
+
+    <div id="result" class="result-box" style="display:none;"></div>
+
+</div>
+
+<script>
+    let model;
+
+    async function loadModel() {
+        try {
+            model = await tf.loadLayersModel("tfjs_model/model.json");
+            document.getElementById("modelStatus").innerHTML = "✅ Modellen är laddad och redo!";
+            document.getElementById("modelStatus").style.background = "#e3ffe9";
+            document.getElementById("modelStatus").style.borderColor = "#7cd992";
+        } catch (error) {
+            document.getElementById("modelStatus").innerHTML = "❌ Kunde inte ladda modellen.";
+            console.error(error);
+        }
+    }
+
+    loadModel();
+
+    document.getElementById("imageUpload").addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const img = document.getElementById("preview");
+        img.src = URL.createObjectURL(file);
+        img.style.display = "block";
+    });
+
+    async function predict() {
+        if (!model) {
+            alert("Modellen är inte laddad ännu!");
+            return;
+        }
+
+        const imgElement = document.getElementById("preview");
+        if (!imgElement.src) {
+            alert("Ladda upp en bild först!");
+            return;
+        }
+
+        const tensor = tf.browser.fromPixels(imgElement)
+            .resizeNearestNeighbor([224, 224])
+            .toFloat()
+            .div(127.5)
+            .sub(1)
+            .expandDims();
+
+        const prediction = model.predict(tensor);
+        const data = await prediction.data();
+
+        const classes = ["Ros", "Tulpan", "Solros", "Orkidé", "Lilja"]; // Anpassa efter din modell
+
+        const maxIndex = data.indexOf(Math.max(...data));
+        const flower = classes[maxIndex];
+        const probability = (data[maxIndex] * 100).toFixed(2);
+
+        const resultBox = document.getElementById("result");
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `🌸 <b>Art:</b> ${flower}<br>📊 <b>Sannolikhet:</b> ${probability}%`;
+    }
+</script>
+
+</body>
+</html>
