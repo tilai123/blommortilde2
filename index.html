@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blomklassificerare - AI Blomidentifiering</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <title>Tilde - Blomklassificering</title>
     <style>
         * {
             margin: 0;
@@ -14,150 +13,87 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #ffeef8 0%, #fff5e6 50%, #e6f7ff 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 20px;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: "🌸";
-            position: fixed;
-            top: 20px;
-            right: 30px;
-            font-size: 60px;
-            opacity: 0.15;
-            z-index: 0;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        body::after {
-            content: "🌼";
-            position: fixed;
-            bottom: 50px;
-            left: 40px;
-            font-size: 70px;
-            opacity: 0.1;
-            z-index: 0;
-            animation: float 8s ease-in-out infinite reverse;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(20px); }
         }
 
         .container {
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
         }
 
-        header {
+        .header {
             text-align: center;
-            margin-bottom: 40px;
-            animation: slideDown 0.8s ease-out;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
         }
 
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        h1 {
-            font-size: 48px;
-            background: linear-gradient(135deg, #d946a6 0%, #ec4899 50%, #f97316 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        .subtitle {
-            color: #6b7280;
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
-
-        .credits {
-            color: #9ca3af;
-            font-size: 14px;
-            font-style: italic;
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
             margin-bottom: 5px;
         }
 
-        .credits strong {
-            color: #d946a6;
-            font-style: normal;
+        .header p {
+            color: #666;
+            font-size: 1.1em;
         }
 
-        .content-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        @media (max-width: 768px) {
-            .content-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            h1 {
-                font-size: 36px;
-            }
-        }
-
-        .status-box {
-            background: white;
+        .class-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
             border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(217, 70, 166, 0.15);
-            border: 2px solid #fce7f3;
-            animation: fadeIn 0.8s ease-out 0.2s both;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .status-section {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
         }
 
-        .status-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 20px;
+        .status-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 10px;
         }
 
-        .status-icon {
+        .status-indicator {
+            display: inline-block;
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: #ef4444;
-            animation: pulse 2s infinite;
+            margin-right: 8px;
         }
 
-        .status-icon.loaded {
-            background: #10b981;
+        .status-indicator.loading {
+            background: #ffc107;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-indicator.ready {
+            background: #28a745;
+        }
+
+        .status-indicator.error {
+            background: #dc3545;
         }
 
         @keyframes pulse {
@@ -165,246 +101,198 @@
             50% { opacity: 0.5; }
         }
 
-        .status-info {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #f9fafb;
-            border-radius: 10px;
-            border-left: 4px solid #ec4899;
-        }
-
-        .status-label {
-            color: #6b7280;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .status-value {
-            color: #1f2937;
-            font-weight: 600;
-            font-size: 14px;
-            padding: 4px 12px;
-            background: #fce7f3;
-            border-radius: 6px;
-        }
-
-        .status-value.ready {
-            background: #d1fae5;
-            color: #065f46;
+        .status-text {
+            color: #666;
+            font-size: 0.95em;
         }
 
         .upload-section {
-            background: white;
-            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 10px 40px rgba(217, 70, 166, 0.15);
-            border: 2px solid #fce7f3;
-            animation: fadeIn 0.8s ease-out 0.3s both;
-        }
-
-        .upload-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 20px;
-        }
-
-        .drop-zone {
-            border: 3px dashed #ec4899;
-            border-radius: 15px;
-            padding: 40px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: linear-gradient(135deg, #fef2f8 0%, #fef9e7 100%);
+            background: #f9f9f9;
         }
 
-        .drop-zone:hover {
-            border-color: #d946a6;
-            background: linear-gradient(135deg, #fce7f3 0%, #fef3c7 100%);
-            transform: translateY(-2px);
+        .upload-area:hover {
+            background: #f0f0f0;
+            border-color: #764ba2;
         }
 
-        .drop-zone.dragover {
-            border-color: #d946a6;
-            background: #fce7f3;
-            box-shadow: 0 0 20px rgba(217, 70, 166, 0.3);
+        .upload-area.drag-over {
+            background: #e8e8ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
         }
 
-        .drop-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .drop-text {
-            color: #6b7280;
-            font-size: 16px;
+        .upload-icon {
+            font-size: 2.5em;
             margin-bottom: 10px;
         }
 
-        .drop-text strong {
-            color: #d946a6;
+        .upload-text {
+            color: #666;
+            margin-bottom: 5px;
         }
 
-        .drop-hint {
-            color: #9ca3af;
-            font-size: 13px;
+        .upload-hint {
+            color: #999;
+            font-size: 0.85em;
         }
 
         #imageInput {
             display: none;
         }
 
-        .button {
-            background: linear-gradient(135deg, #d946a6 0%, #ec4899 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 15px;
-            width: 100%;
-        }
-
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(217, 70, 166, 0.4);
-        }
-
-        .button:active {
-            transform: translateY(0);
-        }
-
-        .button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .results-section {
-            grid-column: 1 / -1;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(217, 70, 166, 0.15);
-            border: 2px solid #fce7f3;
-            animation: fadeIn 0.8s ease-out 0.4s both;
+        .preview-section {
+            margin-bottom: 30px;
             display: none;
         }
 
-        .results-section.show {
+        .preview-section.active {
             display: block;
         }
 
-        .results-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 20px;
+        .preview-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            display: block;
         }
 
-        .results-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            align-items: center;
-        }
-
-        @media (max-width: 768px) {
-            .results-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .preview-image {
+        #imagePreview {
             max-width: 100%;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(217, 70, 166, 0.2);
-            border: 3px solid #fce7f3;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .results-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .result-item {
-            background: linear-gradient(135deg, #fef2f8 0%, #fef9e7 100%);
-            border-radius: 12px;
+        .result-section {
+            margin-top: 30px;
             padding: 20px;
-            border-left: 5px solid #ec4899;
-            transition: all 0.3s ease;
+            background: #f0f8ff;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+            display: none;
         }
 
-        .result-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 5px 15px rgba(217, 70, 166, 0.1);
+        .result-section.active {
+            display: block;
         }
 
-        .result-item.top {
-            background: linear-gradient(135deg, #fce7f3 0%, #fef3c7 100%);
-            border-left-color: #d946a6;
-            padding: 25px;
+        .result-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 1.1em;
         }
 
         .result-flower {
-            font-size: 24px;
-            color: #1f2937;
-            font-weight: 700;
+            font-size: 1.8em;
+            color: #667eea;
+            font-weight: bold;
             margin-bottom: 8px;
         }
 
         .result-confidence {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 10px;
+            color: #666;
+            font-size: 1em;
         }
 
         .confidence-bar {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 10px;
+            background: #e0e0e0;
+            height: 25px;
+            border-radius: 12px;
             overflow: hidden;
+            margin-top: 10px;
         }
 
         .confidence-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             height: 100%;
-            background: linear-gradient(90deg, #d946a6 0%, #ec4899 100%);
-            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85em;
             transition: width 0.5s ease;
         }
 
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 30px;
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
         }
 
-        .loading.show {
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-classify {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-classify:hover:not(:disabled) {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-classify:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-reset {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-reset:hover {
+            background: #d0d0d0;
+            transform: translateY(-2px);
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-spinner.active {
             display: block;
         }
 
         .spinner {
-            border: 4px solid #fce7f3;
-            border-top: 4px solid #ec4899;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
             border-radius: 50%;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto;
         }
 
         @keyframes spin {
@@ -412,289 +300,287 @@
             100% { transform: rotate(360deg); }
         }
 
-        .loading-text {
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .error {
-            background: #fee2e2;
-            border-left: 5px solid #ef4444;
-            color: #991b1b;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
+        .error-message {
+            color: #dc3545;
+            background: #fff5f5;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid #dc3545;
             display: none;
         }
 
-        .error.show {
+        .error-message.active {
             display: block;
         }
 
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 20px;
-            color: #9ca3af;
-            font-size: 14px;
-            border-top: 1px solid #e5e7eb;
-            animation: fadeIn 0.8s ease-out 0.5s both;
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .upload-area {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🌸 Blomklassificerare 🌼</h1>
-            <p class="subtitle">Identifiera blommor med AI-drivna maskininlärning</p>
-            <p class="credits">Skapad av <strong>Tilde G</strong> | Klass <strong>NA23A</strong></p>
-        </header>
+        <div class="header">
+            <h1>🌸 Tilde</h1>
+            <p>Blomklassificering med AI</p>
+            <span class="class-badge">NA23A</span>
+        </div>
 
-        <div class="content-grid">
-            <div class="status-box">
-                <div class="status-title">
-                    <span class="status-icon" id="statusIcon"></span>
-                    Modellstatus
-                </div>
-                <div class="status-info">
-                    <div class="status-item">
-                        <span class="status-label">Modell inladdad</span>
-                        <span class="status-value" id="modelStatus">Laddar...</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Status</span>
-                        <span class="status-value" id="readyStatus">Förbereder</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Version</span>
-                        <span class="status-value">v1.0</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Modelltyp</span>
-                        <span class="status-value">TensorFlow.js</span>
-                    </div>
-                </div>
+        <div class="status-section">
+            <div class="status-label">
+                <span class="status-indicator loading" id="statusIndicator"></span>
+                <span>Modellstatus</span>
             </div>
+            <div class="status-text" id="statusText">Laddar modell...</div>
+        </div>
 
-            <div class="upload-section">
-                <div class="upload-title">Ladda upp blomma</div>
-                <div class="drop-zone" id="dropZone">
-                    <div class="drop-icon">📸</div>
-                    <div class="drop-text">Dra och släpp en bild här</div>
-                    <div class="drop-hint">eller klicka för att välja från dator</div>
-                </div>
+        <div class="upload-section">
+            <label class="upload-label">Ladda upp bild</label>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📷</div>
+                <div class="upload-text">Klicka eller dra en bild här</div>
+                <div class="upload-hint">PNG, JPG eller WebP (max 10MB)</div>
                 <input type="file" id="imageInput" accept="image/*">
-                <button class="button" id="classifyBtn" disabled>Klassificera blomma</button>
-                <div class="error" id="errorMessage"></div>
             </div>
         </div>
 
-        <div class="results-section" id="resultsSection">
-            <div class="results-title">📊 Klassificeringsresultat</div>
-            
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <div class="loading-text">Analyserar bild...</div>
-            </div>
+        <div class="preview-section" id="previewSection">
+            <label class="preview-label">Förhandsvisning</label>
+            <img id="imagePreview" alt="Förhandsvisning">
+        </div>
 
-            <div class="results-container" id="resultsContainer"></div>
+        <div class="button-group" id="buttonGroup" style="display: none;">
+            <button class="btn-classify" id="classifyBtn">Klassificera</button>
+            <button class="btn-reset" id="resetBtn">Rensa</button>
+        </div>
+
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #667eea;">Analyserar bild...</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-label">Klassificeringsresultat</div>
+            <div class="result-flower" id="flowerName">-</div>
+            <div class="result-confidence">Sannolikhet: <span id="confidencePercent">0</span>%</div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+            </div>
         </div>
     </div>
 
-    <footer>
-        <p>Blomklassificeraren använder en tränad neural nätverksmodell baserad på MobileNetV2</p>
-        <p style="margin-top: 10px;">💐 Skapad med kärlek för blomälskare 💐</p>
-    </footer>
-
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.11.0"></script>
     <script>
-        const MODEL_URL = 'https://raw.githubusercontent.com/tilai123/flower-classifier/main/tfjs_model/model.json';
-        const CLASS_NAMES = ['Daisy', 'Dandelion', 'Rose', 'Sunflower', 'Tulip'];
-
+        const MODEL_URL = './model.json';
+        const CLASS_NAMES = ['Klass 0', 'Klass 1', 'Klass 2', 'Klass 3', 'Klass 4'];
+        
         let model = null;
         let selectedImage = null;
 
-        const dropZone = document.getElementById('dropZone');
+        // Status indicator
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+
+        // Upload elements
+        const uploadArea = document.getElementById('uploadArea');
         const imageInput = document.getElementById('imageInput');
-        const classifyBtn = document.getElementById('classifyBtn');
-        const resultsSection = document.getElementById('resultsSection');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const loading = document.getElementById('loading');
-        const statusIcon = document.getElementById('statusIcon');
-        const modelStatus = document.getElementById('modelStatus');
-        const readyStatus = document.getElementById('readyStatus');
+        const previewSection = document.getElementById('previewSection');
+        const imagePreview = document.getElementById('imagePreview');
+        const buttonGroup = document.getElementById('buttonGroup');
+
+        // Result elements
+        const resultSection = document.getElementById('resultSection');
+        const flowerName = document.getElementById('flowerName');
+        const confidencePercent = document.getElementById('confidencePercent');
+        const confidenceFill = document.getElementById('confidenceFill');
+        const loadingSpinner = document.getElementById('loadingSpinner');
         const errorMessage = document.getElementById('errorMessage');
 
-        window.addEventListener('DOMContentLoaded', initializeApp);
+        // Buttons
+        const classifyBtn = document.getElementById('classifyBtn');
+        const resetBtn = document.getElementById('resetBtn');
 
-        async function initializeApp() {
-            try {
-                await loadModel();
-            } catch (error) {
-                console.error('Error initializing app:', error);
-                showError('Fel vid inladdning av modellen: ' + error.message);
-            }
-        }
+        // Load model on page load
+        window.addEventListener('load', async () => {
+            await loadModel();
+        });
 
+        // Load TensorFlow model
         async function loadModel() {
             try {
-                modelStatus.textContent = 'Laddar...';
-                modelStatus.className = 'status-value';
+                statusText.textContent = 'Laddar modell...';
+                statusIndicator.className = 'status-indicator loading';
                 
                 model = await tf.loadLayersModel(MODEL_URL);
                 
-                modelStatus.textContent = 'Inladdad ✓';
-                modelStatus.className = 'status-value ready';
-                readyStatus.textContent = 'Redo';
-                readyStatus.className = 'status-value ready';
-                statusIcon.classList.add('loaded');
-                
-                classifyBtn.disabled = false;
-                
-                console.log('Model loaded successfully');
+                statusIndicator.className = 'status-indicator ready';
+                statusText.textContent = 'Modell är klar (MobileNetV2)';
             } catch (error) {
-                modelStatus.textContent = 'Fel ✗';
-                modelStatus.className = 'status-value';
-                readyStatus.textContent = 'Fel';
-                readyStatus.className = 'status-value';
-                console.error('Failed to load model:', error);
-                throw error;
+                console.error('Fel vid laddning av modell:', error);
+                statusIndicator.className = 'status-indicator error';
+                statusText.textContent = 'Fel: Kunde inte ladda modellen';
+                showError('Kunde inte ladda modellen. Kontrollera att model.json finns i samma mapp.');
             }
         }
 
-        dropZone.addEventListener('click', () => imageInput.click());
-        
-        dropZone.addEventListener('dragover', (e) => {
+        // Upload area click
+        uploadArea.addEventListener('click', () => {
+            imageInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.classList.add('dragover');
+            uploadArea.classList.add('drag-over');
         });
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
         });
 
-        dropZone.addEventListener('drop', (e) => {
+        uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleImageSelect(files[0]);
-            }
+            uploadArea.classList.remove('drag-over');
+            handleImageSelect(e.dataTransfer.files[0]);
         });
 
+        // File input change
         imageInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleImageSelect(e.target.files[0]);
-            }
+            handleImageSelect(e.target.files[0]);
         });
 
+        // Handle image selection
         function handleImageSelect(file) {
+            if (!file) return;
+
             if (!file.type.startsWith('image/')) {
-                showError('Vänligen välj en bildfil');
+                showError('Vänligen välj en bildfil.');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showError('Bildfilen är för stor. Max 10MB.');
                 return;
             }
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 selectedImage = e.target.result;
-                displayPreview();
+                imagePreview.src = selectedImage;
+                previewSection.classList.add('active');
+                buttonGroup.style.display = 'flex';
+                resultSection.classList.remove('active');
                 clearError();
             };
             reader.readAsDataURL(file);
         }
 
-        function displayPreview() {
-            const preview = `<img src="${selectedImage}" alt="Preview" class="preview-image">`;
-            resultsContainer.innerHTML = preview;
-        }
-
-        classifyBtn.addEventListener('click', classifyImage);
-
-        async function classifyImage() {
-            if (!selectedImage || !model) return;
+        // Classify image
+        classifyBtn.addEventListener('click', async () => {
+            if (!model || !selectedImage) {
+                showError('Vänligen ladda en bild och vänta på att modellen är klar.');
+                return;
+            }
 
             try {
-                loading.classList.add('show');
-                resultsSection.classList.add('show');
+                loadingSpinner.classList.add('active');
                 classifyBtn.disabled = true;
 
-                const img = new Image();
-                img.src = selectedImage;
+                const prediction = await classifyImage(selectedImage);
                 
-                await new Promise((resolve) => {
-                    img.onload = resolve;
-                });
-
-                const canvas = document.createElement('canvas');
-                canvas.width = 224;
-                canvas.height = 224;
-                const ctx = canvas.getContext('2d');
-                
-                const size = Math.min(img.width, img.height);
-                const x = (img.width - size) / 2;
-                const y = (img.height - size) / 2;
-                ctx.drawImage(img, x, y, size, size, 0, 0, 224, 224);
-
-                let tensor = tf.browser.fromPixels(canvas);
-                tensor = tensor.cast('float32');
-                tensor = tensor.div(tf.scalar(127.5)).sub(tf.scalar(1));
-                tensor = tensor.expandDims(0);
-
-                const predictions = model.predict(tensor);
-                const probabilities = predictions.dataSync();
-                
-                tensor.dispose();
-                predictions.dispose();
-
-                const results = Array.from(probabilities)
-                    .map((prob, idx) => ({
-                        name: CLASS_NAMES[idx],
-                        probability: prob,
-                        percentage: (prob * 100).toFixed(2)
-                    }))
-                    .sort((a, b) => b.probability - a.probability);
-
-                displayResults(results);
-                loading.classList.remove('show');
+                displayResult(prediction);
+                loadingSpinner.classList.remove('active');
                 classifyBtn.disabled = false;
-
             } catch (error) {
-                console.error('Classification error:', error);
+                console.error('Klassificeringsfel:', error);
                 showError('Fel vid klassificering: ' + error.message);
-                loading.classList.remove('show');
+                loadingSpinner.classList.remove('active');
                 classifyBtn.disabled = false;
             }
+        });
+
+        // Classify image function
+        async function classifyImage(imageData) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const tensor = tf.browser.fromPixels(img)
+                            .resizeNearestNeighbor([224, 224])
+                            .expandDims(0)
+                            .cast('float32');
+
+                        const predictions = model.predict(tensor);
+                        const predictionArray = predictions.dataSync();
+                        
+                        const classIndex = tf.argMax(predictions, -1).dataSync()[0];
+                        const confidence = Math.max(...Array.from(predictionArray));
+
+                        tensor.dispose();
+                        predictions.dispose();
+
+                        resolve({
+                            classIndex: classIndex,
+                            className: CLASS_NAMES[classIndex],
+                            confidence: confidence
+                        });
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                img.onerror = () => reject(new Error('Kunde inte ladda bilden'));
+                img.src = imageData;
+            });
         }
 
-        function displayResults(results) {
-            resultsContainer.innerHTML = `
-                <div>
-                    <img src="${selectedImage}" alt="Preview" class="preview-image">
-                </div>
-                <div class="results-list">
-                    ${results.map((result, idx) => `
-                        <div class="result-item ${idx === 0 ? 'top' : ''}">
-                            <div class="result-flower">
-                                ${idx === 0 ? '🏆 ' : ''}${result.name}
-                            </div>
-                            <div class="result-confidence">
-                                Sannolikhet: ${result.percentage}%
-                            </div>
-                            <div class="confidence-bar">
-                                <div class="confidence-fill" style="width: ${result.percentage}%"></div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+        // Display result
+        function displayResult(prediction) {
+            const confidencePercentValue = Math.round(prediction.confidence * 100);
+            flowerName.textContent = prediction.className;
+            confidencePercent.textContent = confidencePercentValue;
+            confidenceFill.style.width = confidencePercentValue + '%';
+            confidenceFill.textContent = confidencePercentValue + '%';
+            resultSection.classList.add('active');
         }
 
+        // Reset
+        resetBtn.addEventListener('click', () => {
+            selectedImage = null;
+            imageInput.value = '';
+            previewSection.classList.remove('active');
+            buttonGroup.style.display = 'none';
+            resultSection.classList.remove('active');
+            clearError();
+        });
+
+        // Error handling
         function showError(message) {
-            errorMessage.textContent = '⚠️ ' + message;
-            errorMessage.classList.add('show');
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
         }
 
         function clearError() {
-            errorMessage.classList.remove('show');
+            errorMessage.classList.remove('active');
+            errorMessage.textContent = '';
         }
     </script>
 </body>
